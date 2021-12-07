@@ -34,7 +34,17 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "secure hardware",
+    "secure enclave",
+    "strongbox",
+    "tee",
+    "secure element",
+    "cryptography",
+    "symmetric key",
+    "asymmetric key",
+    "biometry",
+    "biometric prompt"
   ],
   "repository": "https://github.com/arifaydogmus/react-native-device-crypto",
   "author": "Arif Aydogmus <aydogmus@gmail.com> (https://github.com/arifaydogmus)",

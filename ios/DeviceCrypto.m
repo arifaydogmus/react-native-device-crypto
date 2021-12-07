@@ -1,19 +1,18 @@
+#import <Security/Security.h>
+#import <React/RCTConvert.h>
+#import <React/RCTBridge.h>
+#import <React/RCTUtils.h>
+#import <LocalAuthentication/LAContext.h>
+#import <LocalAuthentication/LAError.h>
+#import <UIKit/UIKit.h>
 #import "DeviceCrypto.h"
 
 @implementation DeviceCrypto
+@synthesize bridge = _bridge;
 
 RCT_EXPORT_MODULE()
 
-// Example method
-// See // https://reactnative.dev/docs/native-modules-ios
-RCT_REMAP_METHOD(multiply,
-                 multiplyWithA:(nonnull NSNumber*)a withB:(nonnull NSNumber*)b
-                 withResolver:(RCTPromiseResolveBlock)resolve
-                 withRejecter:(RCTPromiseRejectBlock)reject)
-{
-  NSNumber *result = @([a floatValue] * [b floatValue]);
+#pragma mark - DeviceCrypto
 
-  resolve(result);
-}
 
 @end

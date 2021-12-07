@@ -47,8 +47,16 @@
     "biometric prompt"
   ],
   "repository": "https://github.com/arifaydogmus/react-native-device-crypto",
-  "author": "Arif Aydogmus <aydogmus@gmail.com> (https://github.com/arifaydogmus)",
-  "license": "MIT",
+  "license": "ISC",
+  "author": "Arif Aydogmus (https://github.com/arifaydogmus)",
+  "contributors": [
+    {
+      "name": "Can Tasci (https://github.com/cantasci)"
+    },
+    {
+      "name": "A. Burak Polat (https://github.com/abpolat)"
+    }
+  ],
   "bugs": {
     "url": "https://github.com/arifaydogmus/react-native-device-crypto/issues"
   },

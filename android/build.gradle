@@ -19,10 +19,11 @@ def safeExtGet(prop, fallback) {
 }
 
 android {
-    compileSdkVersion safeExtGet('DeviceCrypto_compileSdkVersion', 29)
+    compileSdkVersion safeExtGet('DeviceCrypto_compileSdkVersion', 30)
+    buildToolsVersion safeExtGet('DeviceCrypto_buildToolsVersion', '30.0.2')
     defaultConfig {
-        minSdkVersion safeExtGet('DeviceCrypto_minSdkVersion', 16)
-        targetSdkVersion safeExtGet('DeviceCrypto_targetSdkVersion', 29)
+        minSdkVersion safeExtGet('DeviceCrypto_minSdkVersion', 23)
+        targetSdkVersion safeExtGet('DeviceCrypto_targetSdkVersion', 30)
         versionCode 1
         versionName "1.0"
 
@@ -56,4 +57,7 @@ repositories {
 dependencies {
     //noinspection GradleDynamicVersion
     implementation "com.facebook.react:react-native:+"  // From node_modules
+    implementation 'androidx.appcompat:appcompat:1.4.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01'
+    implementation 'androidx.biometric:biometric:1.1.0'
 }

@@ -8,7 +8,6 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.module.annotations.ReactModule;
 
-import static com.reactnativedevicecrypto.Constants.TOUCH;
 import java.security.KeyStore;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -18,7 +17,6 @@ import androidx.biometric.BiometricPrompt;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import static com.reactnativedevicecrypto.Constants.*;
-import static com.reactnativedevicecrypto.ErrorMessages.*;
 
 @SuppressWarnings({"unused", "SameParameterValue"})
 @ReactModule(name = DeviceCryptoModule.NAME)

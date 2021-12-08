@@ -96,7 +96,6 @@ public class Authenticator {
                         @Override
                         public void onAuthenticationFailed() {
                             super.onAuthenticationFailed();
-                            promise.reject(E_ERROR, "Authentication failed!");
                             return;
                         }
                     };

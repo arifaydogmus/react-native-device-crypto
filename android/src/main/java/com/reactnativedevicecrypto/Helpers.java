@@ -70,10 +70,10 @@ public class Helpers {
         return keyStore.containsAlias(alias);
     }
 
-    public static boolean doNonAuthenticatedCryptography(@NonNull String alias, ReactApplicationContext context) throws Exception {
+    public static boolean doNonAuthenticatedCryptography(@NonNull String alias, @KeyType.Types int keyType, ReactApplicationContext context) throws Exception {
         if (!Helpers.isKeyExists(alias)) throw new Exception(alias.concat(" is not exists in KeyStore"));
-        KeyInfo keyInfo = Helpers.getKeyInfo(alias, KeyType.SYMMETRIC);
-        if (!keyInfo.isUserAuthenticationRequired()) {
+        KeyInfo keyInfo = Helpers.getKeyInfo(alias, keyType);
+        if (keyInfo.isUserAuthenticationRequired()) {
             if (!Device.hasEnrolledBiometry(context)) throw new Exception("Device cannot sign. (No biometry enrolled)");
             if (!Device.isAppGrantedToUseBiometry(context)) throw new Exception("The app is not granted to use biometry.");
         }
@@ -157,7 +157,7 @@ public class Helpers {
     }
 
     public static String getPublicKeyPEMFormatted(@NonNull String alias) throws Exception {
-        if (isKeyExists(alias)) {
+        if (!isKeyExists(alias)) {
             return null;
         }
         PublicKey publicKey = getPublicKeyRef(alias);

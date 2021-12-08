@@ -85,7 +85,7 @@ public class DeviceCryptoModule extends ReactContextBaseJavaModule {
       Signature signature = Helpers.initializeSignature(alias);
 
       // Key usage doesn't require biometric authentication (unrestricted)
-      if (Helpers.doNonAuthenticatedCryptography(alias, context)) {
+      if (Helpers.doNonAuthenticatedCryptography(alias, Helpers.KeyType.ASYMMETRIC, context)) {
         String signatureOfTheText = Helpers.sign(plainText, signature);
         if (signatureOfTheText.isEmpty()) {
           throw new Exception("Couldn't sign the text");
@@ -109,7 +109,7 @@ public class DeviceCryptoModule extends ReactContextBaseJavaModule {
       Cipher cipher = Helpers.initializeEncrypter(alias);
 
       // Key usage doesn't require biometric authentication (unrestricted)
-      if (Helpers.doNonAuthenticatedCryptography(alias, context)) {
+      if (Helpers.doNonAuthenticatedCryptography(alias, Helpers.KeyType.SYMMETRIC, context)) {
         WritableMap jsObject = Helpers.encrypt(plainText, cipher);
         promise.resolve(jsObject);
         return;
@@ -130,7 +130,7 @@ public class DeviceCryptoModule extends ReactContextBaseJavaModule {
       Cipher cipher = Helpers.initializeDecrypter(alias, ivDecoded);
 
       // Key usage doesn't require biometric authentication (unrestricted)
-      if (Helpers.doNonAuthenticatedCryptography(alias, context)) {
+      if (Helpers.doNonAuthenticatedCryptography(alias, Helpers.KeyType.SYMMETRIC, context)) {
         promise.resolve(Helpers.decrypt(plainText, cipher));
         return;
       }

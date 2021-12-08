@@ -1,23 +1,6 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 
-const LINKING_ERROR =
-  `The package 'react-native-device-crypto' doesn't seem to be linked. Make sure: \n\n` +
-  Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
-  '- You rebuilt the app after installing the package\n' +
-  '- You are not using Expo managed workflow\n';
-
-const proxy = new Proxy(
-  {},
-  {
-    get() {
-      throw new Error(LINKING_ERROR);
-    },
-  }
-);
-
-const RNDeviceCrypto = NativeModules.DeviceCrypto
-  ? NativeModules.DeviceCrypto
-  : proxy;
+const RNDeviceCrypto = NativeModules.DeviceCrypto;
 
 export interface BiometryTexts {
   biometryTitle: string;
@@ -147,7 +130,7 @@ const DeviceCrypto = {
    * @return {Promise} Resolves to `true` if exists
    */
   async isKeyExists(alias: string): Promise<boolean> {
-    return Boolean(RNDeviceCrypto.hasPairingKeys(alias));
+    return RNDeviceCrypto.isKeyExists(alias);
   },
 
   /**
@@ -156,7 +139,7 @@ const DeviceCrypto = {
    * @returns {Promise} Resolves `true` if app granted
    */
   async isAppGrantedToUseBiometry(): Promise<boolean> {
-    return Boolean(RNDeviceCrypto.isAppGrantedToUseBiometry());
+    return RNDeviceCrypto.isAppGrantedToUseBiometry();
   },
 
   /**
@@ -165,7 +148,7 @@ const DeviceCrypto = {
    * @returns {Promise} Resolves `true` if biometry is enrolled on the device
    */
   async isBiometryEnrolled(): Promise<boolean> {
-    return Boolean(RNDeviceCrypto.isBiometryEnrolled());
+    return RNDeviceCrypto.isBiometryEnrolled();
   },
 
   /**
@@ -192,7 +175,11 @@ const DeviceCrypto = {
    * @returns {Promise} Resolves `true` if user passes biometry or fallback pin
    */
   async authenticateWithBiometry(options: BiometryTexts): Promise<boolean> {
-    return Boolean(RNDeviceCrypto.authenticateWithBiometry(options));
+    try {
+      return RNDeviceCrypto.authenticateWithBiometry(options);
+    } catch (err) {
+      throw err;
+    }
   },
 };
 

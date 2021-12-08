@@ -121,6 +121,7 @@ def enableHermes = project.ext.react.get("enableHermes", false);
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -153,6 +154,8 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            debuggable true
+            renderscriptDebuggable true
         }
         release {
             // Caution! In production, you need to generate your own keystore file.
@@ -203,7 +206,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
+    implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation project(':reactnativedevicecrypto')
 }
 

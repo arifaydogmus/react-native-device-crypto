@@ -56,6 +56,7 @@ public class Authenticator {
                             .setTitle(title)
                             .setSubtitle(subTitle)
                             .setDescription(description)
+                            .setNegativeButtonText("Cancel")
                             .setConfirmationRequired(confirmationRequired)
                             .build();
 
@@ -63,8 +64,9 @@ public class Authenticator {
                         @Override
                         public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
                             super.onAuthenticationError(errorCode, errString);
-                            biometricPrompt.cancelAuthentication();
                             promise.reject(E_ERROR, String.valueOf(errorCode).concat("- ").concat(errString.toString()));
+                            biometricPrompt.cancelAuthentication();
+                            return;
                         }
 
                         @Override
@@ -95,6 +97,7 @@ public class Authenticator {
                         public void onAuthenticationFailed() {
                             super.onAuthenticationFailed();
                             promise.reject(E_ERROR, "Authentication failed!");
+                            return;
                         }
                     };
 

@@ -63,6 +63,24 @@ const DeviceCrypto = {
   },
 
   /**
+   * Create AES key inside the secure hardware. Returns `true` if the key already exists.
+   * Secure enclave/TEE/StrongBox
+   *
+   * Cryptography algorithms AES256
+   *
+   * @return {Promise} Resolves to `true` when successful
+   */
+  async getOrcreateSymmetricKey(
+    alias: string,
+    options: KeyCreationParams
+  ): Promise<boolean> {
+    return RNDeviceCrypto.createKey(alias, {
+      ...options,
+      keyType: KeyTypes.SYMMETRIC,
+    });
+  },
+
+  /**
    * Delete the key from secure hardware
    *
    * @return {Promise} Resolves to `true` when successful
@@ -105,7 +123,7 @@ const DeviceCrypto = {
     plainText: string,
     options: CryptographyParams
   ): Promise<EncryptionResult> {
-    return RNDeviceCrypto.sign(alias, plainText, options);
+    return RNDeviceCrypto.encrypt(alias, plainText, options);
   },
 
   /**
@@ -121,7 +139,7 @@ const DeviceCrypto = {
     iv: string,
     options: CryptographyParams
   ): Promise<string> {
-    return RNDeviceCrypto.sign(alias, plainText, iv, options);
+    return RNDeviceCrypto.decrypt(alias, plainText, iv, options);
   },
 
   /**
@@ -129,8 +147,8 @@ const DeviceCrypto = {
    *
    * @return {Promise} Resolves to `true` if exists
    */
-  async isKeyExists(alias: string): Promise<boolean> {
-    return RNDeviceCrypto.isKeyExists(alias);
+  async isKeyExists(alias: string, keyType: KeyTypes): Promise<boolean> {
+    return RNDeviceCrypto.isKeyExists(alias, keyType);
   },
 
   /**
@@ -177,7 +195,7 @@ const DeviceCrypto = {
   async authenticateWithBiometry(options: BiometryTexts): Promise<boolean> {
     try {
       return RNDeviceCrypto.authenticateWithBiometry(options);
-    } catch (err) {
+    } catch (err: any) {
       throw err;
     }
   },

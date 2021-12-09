@@ -8,7 +8,7 @@ import {
   Button,
   TextInput,
 } from 'react-native';
-import DeviceCrypto from 'react-native-device-crypto';
+import DeviceCrypto, { KeyTypes } from 'react-native-device-crypto';
 import SwitchBox from './components/SwitchBox';
 import styles from './styles';
 
@@ -18,9 +18,7 @@ const AsymmetricScreen = () => {
   const [textToBeSigned, setTextToBeSigned] =
     React.useState<string>('text to be signed');
   const [publicKey, setPublicKey] = React.useState<string>('');
-  const [alias, setAlias] = React.useState<string>(
-    'com.bitwala.app.solaris.5ced10ae1e14f000a7e064c6'
-  );
+  const [alias, setAlias] = React.useState<string>('test');
   const [unlockedDeviceRequired, setUnlockedDeviceRequired] =
     React.useState<boolean>(false);
   const [authenticationRequired, setAuthenticationRequired] =
@@ -40,7 +38,7 @@ const AsymmetricScreen = () => {
       setPublicKey(res);
       setSignature('');
       setShowSignature(false);
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
       setError(err.message);
     }
@@ -57,7 +55,7 @@ const AsymmetricScreen = () => {
       });
       setSignature(res);
       setShowSignature(true);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
@@ -65,21 +63,23 @@ const AsymmetricScreen = () => {
   const deleteKey = async () => {
     try {
       await DeviceCrypto.deleteKey(alias);
-      const res = await DeviceCrypto.isKeyExists(alias);
+      const res = await DeviceCrypto.isKeyExists(alias, KeyTypes.ASYMMETRIC);
       setIsKeyExists(res);
       setShowSignature(false);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
 
   React.useEffect(() => {
-    DeviceCrypto.isKeyExists(alias).then((exist: boolean) => {
-      setIsKeyExists(exist);
-      if (exist) {
-        DeviceCrypto.getPublicKey(alias).then(setPublicKey);
+    DeviceCrypto.isKeyExists(alias, KeyTypes.ASYMMETRIC).then(
+      (exist: boolean) => {
+        setIsKeyExists(exist);
+        if (exist) {
+          DeviceCrypto.getPublicKey(alias).then(setPublicKey);
+        }
       }
-    });
+    );
   }, [alias, isKeyExists, publicKey]);
 
   return (

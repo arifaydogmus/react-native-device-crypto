@@ -16,7 +16,7 @@ const App = () => {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
+            let iconName = 'home';
 
             switch (route.name) {
               case 'Home':

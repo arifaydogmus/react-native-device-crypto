@@ -156,9 +156,9 @@ public class DeviceCryptoModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void isKeyExists(@NonNull String alias, @NonNull final Promise promise) {
+  public void isKeyExists(@NonNull String alias, @Helpers.KeyType.Types int keyType, @NonNull final Promise promise) {
     try {
-      promise.resolve(Helpers.isKeyExists(alias));
+      promise.resolve(Helpers.isKeyExists(alias, keyType));
     } catch (Exception e) {
       promise.reject(E_ERROR, Helpers.getError(e));
     }

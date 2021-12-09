@@ -47,9 +47,9 @@ public class Authenticator {
             public void run() {
                 try {
                     Executor executor = Executors.newSingleThreadExecutor();
-                    String title = options.hasKey("androidBiometryTitle") ? options.getString("androidBiometryTitle") : BIOMETRY_TITLE;
-                    String subTitle = options.hasKey("androidBiometrySubTitle") ? options.getString("androidBiometrySubTitle") : BIOMETRY_SUBTITLE;
-                    String description = options.hasKey("androidBiometryDescription") ? options.getString("androidBiometryDescription") : BIOMETRY_DESCRIPTION;
+                    String title = options.hasKey("biometryTitle") ? options.getString("biometryTitle") : BIOMETRY_TITLE;
+                    String subTitle = options.hasKey("biometrySubTitle") ? options.getString("biometrySubTitle") : BIOMETRY_SUBTITLE;
+                    String description = options.hasKey("biometryDescription") ? options.getString("biometryDescription") : BIOMETRY_DESCRIPTION;
                     boolean confirmationRequired = !options.hasKey("confirmationRequired") || options.getBoolean("confirmationRequired");
 
                     BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()

@@ -25,6 +25,7 @@ import java.security.spec.ECGenParameterSpec;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import static com.reactnativedevicecrypto.Constants.RN_MODULE;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
@@ -59,22 +60,35 @@ public class Helpers {
     }
 
     public static KeyInfo getKeyInfo(@NonNull String alias, @KeyType.Types int keyType) throws Exception {
-        Key key = (keyType == KeyType.ASYMMETRIC)  ? getPrivateKeyRef(alias) : getSymmetricKeyRef(alias);
-        String algorithm = key.getAlgorithm();
-        KeyFactory factory = KeyFactory.getInstance(algorithm, KEY_STORE);
-        return factory.getKeySpec(key, KeyInfo.class);
+        if (keyType == KeyType.ASYMMETRIC) {
+          Key key = getPrivateKeyRef(alias);
+          KeyFactory factory = KeyFactory.getInstance(key.getAlgorithm(), KEY_STORE);
+          return factory.getKeySpec(key, KeyInfo.class);
+        } else {
+          SecretKey secretKey = getSymmetricKeyRef(alias);
+          SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance(secretKey.getAlgorithm(), KEY_STORE);
+          return (KeyInfo) secretKeyFactory.getKeySpec(secretKey, KeyInfo.class);
+        }
     }
 
-    public static boolean isKeyExists(@NonNull String alias) throws Exception {
+    public static boolean isKeyExists(@NonNull String alias, @KeyType.Types int keyType) throws Exception {
         KeyStore keyStore = Helpers.getKeyStore();
-        return keyStore.containsAlias(alias);
+        if (!keyStore.containsAlias(alias)) {
+          return false;
+        }
+
+        if (keyType == KeyType.ASYMMETRIC) {
+          return (getPrivateKeyRef(alias) != null);
+        } else {
+          return (getSymmetricKeyRef(alias) != null);
+        }
     }
 
     public static boolean doNonAuthenticatedCryptography(@NonNull String alias, @KeyType.Types int keyType, ReactApplicationContext context) throws Exception {
-        if (!Helpers.isKeyExists(alias)) throw new Exception(alias.concat(" is not exists in KeyStore"));
+        if (!Helpers.isKeyExists(alias, keyType)) throw new Exception(alias.concat(" is not exists in KeyStore"));
         KeyInfo keyInfo = Helpers.getKeyInfo(alias, keyType);
         if (keyInfo.isUserAuthenticationRequired()) {
-            if (!Device.hasEnrolledBiometry(context)) throw new Exception("Device cannot sign. (No biometry enrolled)");
+            if (!Device.hasEnrolledBiometry(context)) throw new Exception("Device cannot sign/encrypt. (No biometry enrolled)");
             if (!Device.isAppGrantedToUseBiometry(context)) throw new Exception("The app is not granted to use biometry.");
         }
 
@@ -130,7 +144,7 @@ public class Helpers {
 
     // ASYMMETRIC KEY METHODS
     public static PublicKey getOrCreateAsymmetricKey(@NonNull String alias, @NonNull boolean unlockedDeviceRequired, @NonNull boolean authenticationRequired, @NonNull boolean invalidateOnNewBiometry) throws Exception {
-        if (isKeyExists(alias)) {
+        if (isKeyExists(alias, KeyType.ASYMMETRIC)) {
             return getPublicKeyRef(alias);
         }
 
@@ -142,7 +156,7 @@ public class Helpers {
     }
 
     public static PublicKey getPublicKeyRef(@NonNull String alias) throws Exception {
-        if (!isKeyExists(alias)) {
+        if (!isKeyExists(alias, KeyType.ASYMMETRIC)) {
             throw new Exception(alias.concat(" not found in keystore"));
         }
         KeyStore keyStore = getKeyStore();
@@ -157,7 +171,7 @@ public class Helpers {
     }
 
     public static String getPublicKeyPEMFormatted(@NonNull String alias) throws Exception {
-        if (!isKeyExists(alias)) {
+        if (!isKeyExists(alias, KeyType.ASYMMETRIC)) {
             return null;
         }
         PublicKey publicKey = getPublicKeyRef(alias);
@@ -184,9 +198,10 @@ public class Helpers {
     // SYMMETRIC KEY METHODS
     // ______________________________________________
     public static SecretKey getOrCreateSymmetricKey(@NonNull String alias, @NonNull boolean unlockedDeviceRequired, @NonNull boolean authenticationRequired, @NonNull boolean invalidateOnNewBiometry) throws Exception {
-        if (isKeyExists(alias)) {
+        if (isKeyExists(alias, KeyType.SYMMETRIC)) {
             return getSymmetricKeyRef(alias);
         }
+
         KeyGenParameterSpec.Builder builder = getBuilder(alias, KeyType.SYMMETRIC, unlockedDeviceRequired, authenticationRequired, invalidateOnNewBiometry);
         KeyGenerator keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEY_STORE);
         keyGen.init(builder.build());
@@ -194,7 +209,7 @@ public class Helpers {
     }
 
     public static SecretKey getSymmetricKeyRef(@NonNull String alias) throws Exception {
-        if (!isKeyExists(alias)) {
+        if (!isKeyExists(alias, KeyType.SYMMETRIC)) {
             throw new Exception(alias.concat(" not found in keystore"));
         }
         KeyStore keyStore = getKeyStore();

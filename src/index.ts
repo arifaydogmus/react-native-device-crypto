@@ -2,10 +2,11 @@ import { NativeModules } from 'react-native';
 
 const RNDeviceCrypto = NativeModules.DeviceCrypto;
 
-export interface BiometryTexts {
+export interface BiometryParams {
   biometryTitle: string;
   biometrySubTitle: string;
   biometryDescription: string;
+  confirmationRequired: boolean;
 }
 
 export interface KeyCreationParams {
@@ -18,11 +19,6 @@ export enum KeyTypes {
   ASYMMETRIC = 0,
   SYMMETRIC = 1,
 }
-
-export interface CryptographyParams extends BiometryTexts {
-  confirmationRequired: boolean;
-}
-
 export interface EncryptionResult {
   iv: string;
   encryptedText: string;
@@ -107,7 +103,7 @@ const DeviceCrypto = {
   async sign(
     alias: string,
     plainText: string,
-    options: CryptographyParams
+    options: BiometryParams
   ): Promise<string> {
     return RNDeviceCrypto.sign(alias, plainText, options);
   },
@@ -121,7 +117,7 @@ const DeviceCrypto = {
   async encrypt(
     alias: string,
     plainText: string,
-    options: CryptographyParams
+    options: BiometryParams
   ): Promise<EncryptionResult> {
     return RNDeviceCrypto.encrypt(alias, plainText, options);
   },
@@ -137,7 +133,7 @@ const DeviceCrypto = {
     alias: string,
     plainText: string,
     iv: string,
-    options: CryptographyParams
+    options: BiometryParams
   ): Promise<string> {
     return RNDeviceCrypto.decrypt(alias, plainText, iv, options);
   },
@@ -192,7 +188,7 @@ const DeviceCrypto = {
    *
    * @returns {Promise} Resolves `true` if user passes biometry or fallback pin
    */
-  async authenticateWithBiometry(options: BiometryTexts): Promise<boolean> {
+  async authenticateWithBiometry(options: BiometryParams): Promise<boolean> {
     try {
       return RNDeviceCrypto.authenticateWithBiometry(options);
     } catch (err: any) {

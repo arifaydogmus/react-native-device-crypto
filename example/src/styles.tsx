@@ -9,9 +9,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'stretch',
   },
-  info: {
-    padding: 5,
+  infoBoxes: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+  box: {
+    flex: 0.5,
+    alignItems: 'center',
+  },
+
   result: {
     marginTop: 8,
     padding: 10,
@@ -49,6 +57,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666666',
     fontStyle: 'italic',
+  },
+  positive: {
+    color: 'green',
+    marginVertical: 10,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  negative: {
+    color: 'red',
+    marginVertical: 10,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

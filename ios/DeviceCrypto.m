@@ -18,36 +18,13 @@ RCT_EXPORT_MODULE()
 #define kUnlockedDeviceRequired @"unlockedDeviceRequired"
 #define kAuthenticationRequired @"authenticationRequired"
 #define kInvalidateOnNewBiometry @"invalidateOnNewBiometry"
-
 #define kAuthenticatePrompt @"biometryDescription"
-#define eAuthenticationCancelled @"Please confirm your biometrics."
-
-
-
-#define allTrim( object ) [object stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet] ]
 
 typedef NS_ENUM(NSUInteger, KeyType) {
     ASYMMETRIC = 0,
     SYMMETRIC = 1,
 };
 
-- (NSString*) convertToString:(NSDictionary *) data {
-  NSError * err;
-  NSData * jsonData = [NSJSONSerialization  dataWithJSONObject:data options:0 error:&err];
-  return [[NSString alloc] initWithData:jsonData   encoding:NSUTF8StringEncoding];
-}
-
-- (NSDictionary*) convertToDictionary:(NSString *) stringData
-{
-  NSError * err;
-  NSData *data =[stringData dataUsingEncoding:NSUTF8StringEncoding];
-  if(data!=nil){
-    return (NSDictionary *)[NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&err];
-  }
-  return nil;
-}
-
-// Public key methods
 - (SecKeyRef) getPublicKeyRef:(NSData*) alias
 {
   NSDictionary *query = @{
@@ -167,7 +144,6 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return true;
 }
 
-// Private key methods
 - (SecKeyRef) getPrivateKeyRef:(NSData*)alias withMessage:(NSString *)authPromptMessage
 {
   NSString *authenticationPrompt = @"Authenticate to retrieve secret";
@@ -274,37 +250,6 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return [self getPublicKeyAsPEM:alias];
 }
 
-
-
-
-
-- (NSString *) getBiometryType
-{
-  NSError *aerr = nil;
-  LAContext *context = [[LAContext alloc] init];
-  BOOL canBeProtected = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&aerr];
-  
-  if (aerr || !canBeProtected) {
-    return @"ERROR";
-  }
-  
-  if (@available(iOS 11, *)) {
-    if (context.biometryType == LABiometryTypeFaceID) {
-      return @"FACE";
-    }
-    else if (context.biometryType == LABiometryTypeTouchID) {
-      return @"TOUCH";
-    }
-    else if (context.biometryType == LABiometryNone) {
-      return @"NONE";
-    } else {
-      return @"TOUCH";
-    }
-  }
-  
-  return @"TOUCH";
-}
-
 // React-Native methods
 #if TARGET_OS_IOS
 
@@ -380,7 +325,7 @@ RCT_EXPORT_METHOD(isKeyExists:(nonnull NSData *)alias withKeyType:(nonnull NSNum
       // getOrCreateSymmetricKey
     }
   } @catch(NSException *err) {
-    reject(err.name, err.reason, nil);
+    reject(err.name, err.description, nil);
   }
 }
 
@@ -425,8 +370,37 @@ RCT_EXPORT_METHOD(deviceSecurityLevel:(RCTPromiseResolveBlock)resolve rejecter:(
 
 RCT_EXPORT_METHOD(getBiometryType:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-  NSString *biometryType = [self getBiometryType];
-  return resolve(biometryType);
+  @try {
+    NSError *aerr = nil;
+    LAContext *context = [[LAContext alloc] init];
+    BOOL canBeProtected = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&aerr];
+    
+    if (aerr || !canBeProtected) {
+      [NSException raise:@"Couldn't get biometry type" format:@"%@", aerr];
+    }
+    
+    if (@available(iOS 11, *)) {
+      if (context.biometryType == LABiometryTypeFaceID) {
+        resolve(@"FACE");
+        return;
+      }
+      else if (context.biometryType == LABiometryTypeTouchID) {
+        resolve(@"TOUCH");
+        return;
+      }
+      else if (context.biometryType == LABiometryNone) {
+        resolve(@"NONE");
+        return;
+      } else {
+        resolve(@"TOUCH");
+        return;
+      }
+    }
+    
+    resolve(@"TOUCH");
+  } @catch (NSException *err) {
+    reject(err.name, err.description, nil);
+  }
 }
 
 RCT_EXPORT_METHOD(authenticateWithBiometry:(nonnull NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
@@ -439,14 +413,13 @@ RCT_EXPORT_METHOD(authenticateWithBiometry:(nonnull NSDictionary *)options resol
     
     LAContext *context = [[LAContext alloc] init];
     context.localizedFallbackTitle = @"";
-    
-    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:authMessage reply:^(BOOL success, NSError *biometricError) {
+    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:authMessage reply:^(BOOL success, NSError *aerr) {
       if (success) {
         resolve(@(YES));
-      } else if (biometricError.code == LAErrorUserCancel) {
+      } else if (aerr.code == LAErrorUserCancel) {
         resolve(@(NO));
       } else {
-        reject(@"biometric_error", [NSString stringWithFormat:@"Error: code: %li  reason: %@ description: %@", (long)biometricError.code, biometricError.localizedFailureReason, biometricError.localizedDescription], nil);
+        reject(@"Biometry error", aerr.localizedDescription, nil);
       }
     }];
   });

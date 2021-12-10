@@ -51,7 +51,6 @@ const AsymmetricScreen = () => {
         biometryTitle: 'Authenticate',
         biometrySubTitle: 'Signing',
         biometryDescription: 'Authenticate your self to sign the text',
-        confirmationRequired: true,
       });
       setSignature(res);
       setShowSignature(true);

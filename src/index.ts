@@ -6,7 +6,6 @@ export interface BiometryParams {
   biometryTitle: string;
   biometrySubTitle: string;
   biometryDescription: string;
-  confirmationRequired: boolean;
 }
 
 export interface KeyCreationParams {

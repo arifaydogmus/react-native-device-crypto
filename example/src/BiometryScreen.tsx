@@ -11,7 +11,6 @@ const BiometryScreen = () => {
   const simpleAuthentication = async () => {
     try {
       const res = await DeviceCrypto.authenticateWithBiometry({
-        confirmationRequired: true,
         biometryDescription: 'Description',
         biometrySubTitle: 'Sub title',
         biometryTitle: ' Title',

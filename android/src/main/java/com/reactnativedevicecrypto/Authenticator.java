@@ -50,14 +50,12 @@ public class Authenticator {
                     String title = options.hasKey("biometryTitle") ? options.getString("biometryTitle") : BIOMETRY_TITLE;
                     String subTitle = options.hasKey("biometrySubTitle") ? options.getString("biometrySubTitle") : BIOMETRY_SUBTITLE;
                     String description = options.hasKey("biometryDescription") ? options.getString("biometryDescription") : BIOMETRY_DESCRIPTION;
-                    boolean confirmationRequired = !options.hasKey("confirmationRequired") || options.getBoolean("confirmationRequired");
 
                     BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                             .setTitle(title)
                             .setSubtitle(subTitle)
                             .setDescription(description)
                             .setNegativeButtonText("Cancel")
-                            .setConfirmationRequired(confirmationRequired)
                             .build();
 
                     BiometricPrompt.AuthenticationCallback authCallback = new BiometricPrompt.AuthenticationCallback() {

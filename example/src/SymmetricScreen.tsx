@@ -54,7 +54,6 @@ const SymmetricScreen = () => {
         biometryTitle: 'Authentication is required',
         biometrySubTitle: 'Encryption',
         biometryDescription: 'Authenticate your self to encrypt given text.',
-        confirmationRequired: true,
       });
       setIvText(res.iv);
       setEncryptedText(res.encryptedText);
@@ -70,7 +69,6 @@ const SymmetricScreen = () => {
         biometryTitle: 'Authentication is required',
         biometrySubTitle: 'Encryption',
         biometryDescription: 'Authenticate your self to encrypt given text.',
-        confirmationRequired: true,
       });
       setDecryptedText(res);
     } catch (err: any) {

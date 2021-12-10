@@ -19,7 +19,7 @@ RCT_EXPORT_MODULE()
 #define kAuthenticationRequired @"authenticationRequired"
 #define kInvalidateOnNewBiometry @"invalidateOnNewBiometry"
 
-#define kAuthenticatePrompt @"iosAuthenticationPrompt"
+#define kAuthenticatePrompt @"biometryDescription"
 #define eAuthenticationCancelled @"Please confirm your biometrics."
 
 
@@ -257,7 +257,8 @@ typedef NS_ENUM(NSUInteger, KeyType) {
          (id)kSecAttrLabel:          @"privateKey",
          (id)kSecAttrApplicationTag: alias,
          (id)kSecAttrIsPermanent:    (id)kCFBooleanTrue,
-         (id)kSecAttrAccessControl:  (__bridge id)acRef },
+         (id)kSecAttrAccessControl:  (__bridge id)acRef
+       },
          (id)kSecPublicKeyAttrs:
             @{
               (id)kSecAttrIsPermanent:    (id)kCFBooleanFalse,
@@ -304,98 +305,6 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return @"TOUCH";
 }
 
-// signData
-- (void) signData:(NSData *)alias withPlainText:(NSString *)plainText withOptions:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject
-{
-  NSError *error = nil;
-  NSData *incomingData = [plainText dataUsingEncoding:NSUTF8StringEncoding];
-  NSString *authMessage = nil;
-  
-  if (options && options[kAuthenticatePrompt]){
-    authMessage = options[kAuthenticatePrompt];
-  }
-  
-  SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:authMessage];
-  
-  if (privateKeyRef == nil){
-    error = [NSError errorWithDomain:@"Private key not found" code:1718 userInfo:nil];
-    reject(@"", @"", nil);
-    return;
-  }
-  
-  bool canSign = SecKeyIsAlgorithmSupported(privateKeyRef, kSecKeyOperationTypeSign, kSecKeyAlgorithmECDSASignatureMessageX962SHA256);
-  
-  if (!canSign){
-    error = [NSError errorWithDomain:@"The private key cannot sign" code:1719 userInfo:nil];
-    
-    reject(@"", @"", nil);
-    return;
-  }
-  
-  CFErrorRef errorRef = NULL;
-  NSData *signatureBytes = nil;
-  
-  signatureBytes = (NSData*)CFBridgingRelease(
-                                              SecKeyCreateSignature(
-                                                                    privateKeyRef,
-                                                                    kSecKeyAlgorithmECDSASignatureMessageX962SHA256,
-                                                                    (CFDataRef)incomingData,
-                                                                    &errorRef)
-                                              );
-  
-  if (privateKeyRef) {CFRelease(privateKeyRef);}
-  if (errorRef) {
-    CFRelease(errorRef);
-    // This will throw when user delete the biometry and passcode on the device and re-set
-    error = [NSError errorWithDomain:@"Unable to sign digest." code:1730 userInfo:nil];
-    reject(@"", @"", nil);
-    return;
-  }
-  
-  if (signatureBytes == nil){
-    error = [NSError errorWithDomain:@"The data not signed" code:1731 userInfo:nil];
-    reject(@"", @"", nil);
-    return;
-  }
-  
-  NSString *signatureText = [signatureBytes base64EncodedStringWithOptions:0];
-  resolve(signatureText);
-}
-
-// verifySignature
-- (void) verifySignature:(NSData *)alias withSignedText:(NSString *)signedText withSignature:(NSString *)signature withOptions:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject
-{
-  NSError *error = nil;
-  NSData *signatureData = [[NSData alloc] initWithBase64EncodedString:signature options:0];
-  NSData *signedData = [signedText dataUsingEncoding:NSUTF8StringEncoding];
-  
-  SecKeyRef publicKeyRef = [self getPublicKeyRef:alias];
-  
-  if (publicKeyRef == nil){
-    error = [NSError errorWithDomain:@"Public key not found" code:1733 userInfo:nil];
-    reject(@"", @"", nil);
-    return;
-  }
-  
-  bool canVerify = SecKeyIsAlgorithmSupported(publicKeyRef, kSecKeyOperationTypeVerify, kSecKeyAlgorithmECDSASignatureMessageX962SHA256);
-  if (!canVerify){
-    error = [NSError errorWithDomain:@"The public key cannot verify" code:1734 userInfo:nil];
-    reject(@"", @"", nil);
-    return;
-  }
-  
-  CFErrorRef errorRef = NULL;
-  bool isVerified = SecKeyVerifySignature(publicKeyRef,
-                                          kSecKeyAlgorithmECDSASignatureMessageX962SHA256,
-                                          (CFDataRef)signedData,
-                                          (CFDataRef)signatureData,
-                                          &errorRef);
-  if (publicKeyRef) {CFRelease(publicKeyRef);}
-  if (errorRef) {CFRelease(errorRef);}
-  resolve(isVerified ? @(YES) : @(NO));
-}
-
-
 // React-Native methods
 #if TARGET_OS_IOS
 
@@ -418,8 +327,7 @@ RCT_EXPORT_METHOD(createKey:(nonnull NSData *)alias withOptions:(nonnull NSDicti
   }
 }
 
-// deletePairingKeys
-RCT_EXPORT_METHOD(deletePairingKeys:(NSData *)alias resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(deleteKey:(nonnull NSData *)alias resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
   [self deletePublicKey:alias];
   [self deletePrivateKey:alias];
@@ -427,17 +335,36 @@ RCT_EXPORT_METHOD(deletePairingKeys:(NSData *)alias resolver:(RCTPromiseResolveB
   return resolve(@(YES));
 }
 
-// getPairingPublicKey
-RCT_EXPORT_METHOD(getPairingPublicKey:(NSData *)alias resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(getPublicKey:(nonnull NSData *)alias resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-  NSString *pkeyString = [self getPublicKeyAsPEM:alias];
-  return resolve(pkeyString);
+  return resolve([self getPublicKeyAsPEM:alias]);
 }
 
-// signWithPairingKey
-RCT_EXPORT_METHOD(signWithPairingKey:(NSData *)alias withPlainText:(NSString *)plainText withOptions:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(sign:(nonnull NSData *)alias withPlainText:(nonnull NSString *)plainText withOptions:(nonnull NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-  [self signData:alias withPlainText:plainText withOptions:options resolver:resolve rejecter:reject];
+  @try {
+    CFErrorRef aerr = nil;
+    NSData *textToBeSigned = [plainText dataUsingEncoding:NSUTF8StringEncoding];
+    NSString *authMessage = options[kAuthenticatePrompt];
+    SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:authMessage];
+    
+    bool canSign = SecKeyIsAlgorithmSupported(privateKeyRef, kSecKeyOperationTypeSign, kSecKeyAlgorithmECDSASignatureMessageX962SHA256);
+    if (!canSign) {
+      [NSException raise:@"E1719 - Device cannot sign." format:@"%@", nil];
+    }
+    
+    NSData *signatureBytes = (NSData*)CFBridgingRelease(SecKeyCreateSignature(privateKeyRef, kSecKeyAlgorithmECDSASignatureMessageX962SHA256, (CFDataRef)textToBeSigned, &aerr));
+    if (aerr) {
+      [NSException raise:@"E1720 - Signature creation." format:@"%@", aerr];
+    }
+    
+    if (privateKeyRef) { CFRelease(privateKeyRef); }
+    if (aerr) { CFRelease(aerr); }
+    
+    resolve([signatureBytes base64EncodedStringWithOptions:0]);
+  } @catch(NSException *err) {
+    reject(err.name, err.description, nil);
+  }
 }
 
 // HELPERS
@@ -446,7 +373,7 @@ RCT_EXPORT_METHOD(signWithPairingKey:(NSData *)alias withPlainText:(NSString *)p
 RCT_EXPORT_METHOD(isKeyExists:(nonnull NSData *)alias withKeyType:(nonnull NSNumber *) keyType resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
   @try {
-    if (keyType == ASYMMETRIC) {
+    if (keyType.intValue == ASYMMETRIC) {
       SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:nil];
       return resolve((privateKeyRef == nil) ? @(NO) : @(YES));
     } else {
@@ -502,7 +429,7 @@ RCT_EXPORT_METHOD(getBiometryType:(RCTPromiseResolveBlock)resolve rejecter:(RCTP
   return resolve(biometryType);
 }
 
-RCT_EXPORT_METHOD(authenticateWithBiometry:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(authenticateWithBiometry:(nonnull NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
   dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
     NSString *authMessage = kAuthenticationRequired;

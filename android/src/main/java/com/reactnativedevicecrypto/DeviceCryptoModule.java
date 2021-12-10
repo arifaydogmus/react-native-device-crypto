@@ -218,15 +218,6 @@ public class DeviceCryptoModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void isAppGrantedToUseBiometry(@NonNull final Promise promise) {
-    try {
-      promise.resolve(Device.isAppGrantedToUseBiometry(getReactApplicationContext()));
-    } catch (Exception e) {
-      promise.reject(E_ERROR, Helpers.getError(e));
-    }
-  }
-
-  @ReactMethod
   public void authenticateWithBiometry(ReadableMap options, final Promise promise) {
     try {
       Authenticator.authenticate(options, getCurrentActivity(), promise);

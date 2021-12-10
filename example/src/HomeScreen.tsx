@@ -14,17 +14,12 @@ const HomeScreen = () => {
     string | undefined
   >();
   const [biometryType, setBiometryType] = React.useState<string | undefined>();
-  const [isAppGrantedToUseBiometry, setIsAppGrantedToUseBiometry] =
-    React.useState<boolean | undefined>();
 
   const deviceStatus = async () => {
     try {
       setIsBiometryEnrolled(await DeviceCrypto.isBiometryEnrolled());
       setBiometryType(await DeviceCrypto.getBiometryType());
       setDeviceSecurityLevel(await DeviceCrypto.deviceSecurityLevel());
-      setIsAppGrantedToUseBiometry(
-        await DeviceCrypto.isAppGrantedToUseBiometry()
-      );
     } catch (err: any) {
       setError(err.message);
     }
@@ -92,6 +87,11 @@ const HomeScreen = () => {
         </View>
       ) : null}
       <View style={styles.infoBoxes}>
+        {getBiometryType()}
+
+        {getSecurityLevelComponent()}
+      </View>
+      <View style={styles.infoBoxes}>
         <View style={styles.box}>
           <Text>Biometry enrolled</Text>
           <Icon
@@ -100,24 +100,6 @@ const HomeScreen = () => {
             color={isBiometryEnrolled ? '#057623' : '#ce3a04'}
           />
         </View>
-
-        <View style={styles.box}>
-          <Text>Granted for biometry</Text>
-          <Icon
-            name={
-              isAppGrantedToUseBiometry
-                ? 'checkmark-done-circle'
-                : 'close-circle'
-            }
-            size={64}
-            color={isAppGrantedToUseBiometry ? '#057623' : '#ce3a04'}
-          />
-        </View>
-      </View>
-      <View style={styles.infoBoxes}>
-        {getBiometryType()}
-
-        {getSecurityLevelComponent()}
       </View>
     </View>
   );

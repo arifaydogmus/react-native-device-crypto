@@ -148,15 +148,6 @@ const DeviceCrypto = {
   },
 
   /**
-   * Checks the app is granted to use biometry or not
-   *
-   * @returns {Promise} Resolves `true` if app granted
-   */
-  async isAppGrantedToUseBiometry(): Promise<boolean> {
-    return RNDeviceCrypto.isAppGrantedToUseBiometry();
-  },
-
-  /**
    * Checks the biometry is enrolled on device
    *
    * @returns {Promise} Resolves `true` if biometry is enrolled on the device

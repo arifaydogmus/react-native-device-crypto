@@ -186,7 +186,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return true;
 }
 
-- (NSString*) getOrCreateAsymmetricKey:(nonnull NSData*) alias withUnlockedDeviceRequired:(BOOL) unlockedDeviceRequired withAuthenticationRequired: (BOOL) authenticationRequired withInvalidateOnNewBiometry: (BOOL) invalidateOnNewBiometry
+- (NSString*) getOrCreateKey:(nonnull NSData*) alias withUnlockedDeviceRequired:(BOOL) unlockedDeviceRequired withAuthenticationRequired: (BOOL) authenticationRequired withInvalidateOnNewBiometry: (BOOL) invalidateOnNewBiometry
 {
   SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:kAuthenticationRequired];
   if (privateKeyRef != nil) {
@@ -260,12 +260,12 @@ RCT_EXPORT_METHOD(createKey:(nonnull NSData *)alias withOptions:(nonnull NSDicti
     BOOL unlockedDeviceRequired = [options[kUnlockedDeviceRequired] boolValue];
     BOOL authenticationRequired = [options[kAuthenticationRequired] boolValue];
     BOOL invalidateOnNewBiometry = [options[kInvalidateOnNewBiometry] boolValue];
-    
+
+    NSString* publicKey = [self getOrCreateKey:alias withUnlockedDeviceRequired:unlockedDeviceRequired withAuthenticationRequired:authenticationRequired withInvalidateOnNewBiometry:invalidateOnNewBiometry];
     if (keyType.intValue == ASYMMETRIC) {
-      NSString* publicKey = [self getOrCreateAsymmetricKey:alias withUnlockedDeviceRequired:unlockedDeviceRequired withAuthenticationRequired:authenticationRequired withInvalidateOnNewBiometry:invalidateOnNewBiometry];
-      return resolve(publicKey);
+      resolve(publicKey);
     } else {
-      // getOrCreateSymmetricKey
+      resolve(publicKey != nil ? @(YES) : @(NO));
     }
   } @catch(NSException *err) {
     reject(err.name, err.reason, nil);

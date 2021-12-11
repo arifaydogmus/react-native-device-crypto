@@ -209,9 +209,6 @@ public class Helpers {
     }
 
     public static SecretKey getSymmetricKeyRef(@NonNull String alias) throws Exception {
-        if (!isKeyExists(alias, KeyType.SYMMETRIC)) {
-            throw new Exception(alias.concat(" not found in keystore"));
-        }
         KeyStore keyStore = getKeyStore();
         return (SecretKey) keyStore.getKey(alias, null);
     }

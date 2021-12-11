@@ -30,7 +30,7 @@ const AsymmetricScreen = () => {
 
   const createKey = async () => {
     try {
-      const res = await DeviceCrypto.getOrcreateAsymmetricKey(alias, {
+      const res = await DeviceCrypto.getOrCreateAsymmetricKey(alias, {
         unlockedDeviceRequired,
         authenticationRequired,
         invalidateOnNewBiometry,

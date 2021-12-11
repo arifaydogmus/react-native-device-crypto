@@ -32,7 +32,7 @@ const SymmetricScreen = () => {
   const createKey = async () => {
     setError('');
     try {
-      const res = await DeviceCrypto.getOrcreateSymmetricKey(alias, {
+      const res = await DeviceCrypto.getOrCreateSymmetricKey(alias, {
         authenticationRequired,
         invalidateOnNewBiometry,
         unlockedDeviceRequired,

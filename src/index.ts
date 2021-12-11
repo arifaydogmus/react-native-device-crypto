@@ -47,7 +47,7 @@ const DeviceCrypto = {
    *
    * @return {Promise} Resolves to public key when successful
    */
-  async getOrcreateAsymmetricKey(
+  async getOrCreateAsymmetricKey(
     alias: string,
     options: KeyCreationParams
   ): Promise<string> {
@@ -65,7 +65,7 @@ const DeviceCrypto = {
    *
    * @return {Promise} Resolves to `true` when successful
    */
-  async getOrcreateSymmetricKey(
+  async getOrCreateSymmetricKey(
     alias: string,
     options: KeyCreationParams
   ): Promise<boolean> {

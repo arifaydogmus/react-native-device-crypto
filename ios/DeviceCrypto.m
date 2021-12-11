@@ -25,7 +25,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
     SYMMETRIC = 1,
 };
 
-- (SecKeyRef) getPublicKeyRef:(NSData*) alias
+- (SecKeyRef) getPublicKeyRef:(nonnull NSData*) alias
 {
   NSDictionary *query = @{
     (id)kSecClass:               (id)kSecClassKey,
@@ -46,7 +46,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return nil;
 }
 
-- (NSData *) getPublicKeyBits:(NSData*) alias
+- (NSData *) getPublicKeyBits:(nonnull NSData*) alias
 {
   NSDictionary *query = @{
     (id)kSecClass:               (id)kSecClassKey,
@@ -69,7 +69,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return nil;
 }
 
-- (NSString *) getPublicKeyAsString:(NSData*) alias
+- (NSString *) getPublicKeyAsString:(nonnull NSData*) alias
 {
   NSString *returnVal = nil;
   NSData *publicKeyBits = [self getPublicKeyBits:alias];
@@ -79,7 +79,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return returnVal;
 }
 
-- (NSString*) getPublicKeyAsPEM:(NSData*) alias
+- (NSString*) getPublicKeyAsPEM:(nonnull NSData*) alias
 {
   const char asnHeader[] = {
     0x30, 0x59, 0x30, 0x13,
@@ -106,7 +106,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return pemString;
 }
 
-- (bool) savePublicKeyFromRef:(SecKeyRef)publicKeyRef withAlias:(NSData*) alias
+- (bool) savePublicKeyFromRef:(nonnull SecKeyRef)publicKeyRef withAlias:(nonnull NSData*) alias
 {
   NSDictionary* attributes =
   @{
@@ -128,7 +128,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return true;
 }
 
-- (bool) deletePublicKey:(NSData*) alias
+- (bool) deletePublicKey:(nonnull NSData*) alias
 {
   NSDictionary *query = @{
     (id)kSecClass:               (id)kSecClassKey,
@@ -144,7 +144,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return true;
 }
 
-- (SecKeyRef) getPrivateKeyRef:(NSData*)alias withMessage:(NSString *)authPromptMessage
+- (SecKeyRef) getPrivateKeyRef:(nonnull NSData*)alias withMessage:(NSString *)authPromptMessage
 {
   NSString *authenticationPrompt = @"Authenticate to retrieve secret";
   if (authPromptMessage) {
@@ -170,7 +170,7 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return nil;
 }
 
-- (bool) deletePrivateKey:(NSData*) alias
+- (bool) deletePrivateKey:(nonnull NSData*) alias
 {
   NSDictionary *query = @{
     (id)kSecClass:               (id)kSecClassKey,
@@ -280,11 +280,6 @@ RCT_EXPORT_METHOD(deleteKey:(nonnull NSData *)alias resolver:(RCTPromiseResolveB
   return resolve(@(YES));
 }
 
-RCT_EXPORT_METHOD(getPublicKey:(nonnull NSData *)alias resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
-{
-  return resolve([self getPublicKeyAsPEM:alias]);
-}
-
 RCT_EXPORT_METHOD(sign:(nonnull NSData *)alias withPlainText:(nonnull NSString *)plainText withOptions:(nonnull NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
   @try {
@@ -312,18 +307,86 @@ RCT_EXPORT_METHOD(sign:(nonnull NSData *)alias withPlainText:(nonnull NSString *
   }
 }
 
+RCT_EXPORT_METHOD(encrypt:(nonnull NSData *)alias withPlainText:(nonnull NSString *)plainText withOptions:(nonnull NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+  @try {
+    CFErrorRef aerr = NULL;
+    NSData* cipherText = nil;
+    NSData *textToBeEncrypted = [plainText dataUsingEncoding:NSUTF8StringEncoding];
+    SecKeyRef publicKey = [self getPublicKeyRef:alias];
+    
+    BOOL canEncrypt = SecKeyIsAlgorithmSupported(publicKey, kSecKeyOperationTypeEncrypt, kSecKeyAlgorithmECIESEncryptionCofactorX963SHA256AESGCM);
+    if (!canEncrypt) {
+      [NSException raise:@"E1759 - Device cannot encrypt." format:@"%@", nil];
+    }
+    
+    cipherText = (NSData*)CFBridgingRelease(
+                                            SecKeyCreateEncryptedData(publicKey,
+                                                                      kSecKeyAlgorithmECIESEncryptionCofactorX963SHA256AESGCM,
+                                                                      (__bridge CFDataRef)textToBeEncrypted,
+                                                                      &aerr));
+    if (!cipherText || aerr) {
+      [NSException raise:@"E1760 - Encryption error." format:@"%@", aerr];
+    }
+    
+    if (publicKey) { CFRelease(publicKey); }
+    if (aerr) { CFRelease(aerr); }
+    
+    resolve(@{
+      @"iv": @"NotRequired",
+      @"encryptedText": [cipherText base64EncodedStringWithOptions:0],
+    });
+  } @catch(NSException *err) {
+    reject(err.name, err.description, nil);
+  }
+}
+
+RCT_EXPORT_METHOD(decrypt:(nonnull NSData *)alias withPlainText:(nonnull NSString *)plainText withIvDecoded:(nonnull NSString *)ivDecoded withOptions:(nonnull NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+  @try {
+    NSData* clearText = nil;
+    CFErrorRef aerr = NULL;
+    NSData *textToBeDecrypted = [[NSData alloc] initWithBase64EncodedString:plainText options:0];
+    NSString *authMessage = options[kAuthenticatePrompt];
+    SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:authMessage];
+    
+    BOOL canDecrypt = SecKeyIsAlgorithmSupported(privateKeyRef, kSecKeyOperationTypeDecrypt, kSecKeyAlgorithmECIESEncryptionCofactorX963SHA256AESGCM);
+    
+    if (!canDecrypt) {
+      [NSException raise:@"E1759 - Device cannot encrypt." format:@"%@", nil];
+    }
+    
+    clearText = (NSData*)CFBridgingRelease(
+                                           SecKeyCreateDecryptedData(privateKeyRef,
+                                                                     kSecKeyAlgorithmECIESEncryptionCofactorX963SHA256AESGCM,
+                                                                     (__bridge CFDataRef)textToBeDecrypted,
+                                                                     &aerr));
+    
+    if (!clearText || aerr) {
+      [NSException raise:@"E1760 - Decryption error." format:@"%@", aerr];
+    }
+    
+    if (privateKeyRef) { CFRelease(privateKeyRef); }
+    if (aerr) { CFRelease(aerr); }
+    
+    resolve([[NSString alloc] initWithData:clearText   encoding:NSUTF8StringEncoding]);
+  } @catch(NSException *err) {
+    reject(err.name, err.description, nil);
+  }
+}
+
 // HELPERS
 // ______________________________________________
+RCT_EXPORT_METHOD(getPublicKey:(nonnull NSData *)alias resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+  return resolve([self getPublicKeyAsPEM:alias]);
+}
 
 RCT_EXPORT_METHOD(isKeyExists:(nonnull NSData *)alias withKeyType:(nonnull NSNumber *) keyType resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
   @try {
-    if (keyType.intValue == ASYMMETRIC) {
-      SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:nil];
-      return resolve((privateKeyRef == nil) ? @(NO) : @(YES));
-    } else {
-      // getOrCreateSymmetricKey
-    }
+    SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:nil];
+    resolve((privateKeyRef == nil) ? @(NO) : @(YES));
   } @catch(NSException *err) {
     reject(err.name, err.description, nil);
   }

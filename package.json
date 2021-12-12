@@ -51,10 +51,16 @@
   "author": "Arif Aydogmus (https://github.com/arifaydogmus)",
   "contributors": [
     {
-      "name": "Can Tasci (https://github.com/cantasci)"
+      "name": "Can Tasci",
+      "url": "https://github.com/cantasci"
     },
     {
-      "name": "A. Burak Polat (https://github.com/abpolat)"
+      "name": "A. Burak Polat",
+      "url": "https://github.com/abpolat"
+    },
+    {
+      "name": "Yagmur Akincisoylu",
+      "url": "https://github.com/yagmurakincisoylu"
     }
   ],
   "bugs": {

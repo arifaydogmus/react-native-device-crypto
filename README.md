@@ -43,7 +43,7 @@ Also, the module allows you to
 
 ## Important Notes
 
-Extremely secure iOS encryption and decryption via secure enclave, keychain and elliptic curves.
+Extremely secure iOS encryption and decryption via secure enclave, elliptic curves.
 Very secure Android encryption and decryption via Android KeyStore.
 
 This package requires a compiled SDK version of 30 (Android 11.0) or higher
@@ -55,9 +55,9 @@ Ensure that you have the NSFaceIDUsageDescription entry set in your react native
 
 ## Installation
 
-1. Run `yarn add react-native-keychain` or `npm i react-native-keychain`
+1. Run `yarn add react-native-device-crypto` or `npm i react-native-device-crypto`
 
-   1 a. **If React Native version <= 0.59**: `react-native link react-native-keychain` and check `MainApplication.java` to verify the package was added.
+   1 a. **If React Native version <= 0.59**: `react-native link react-native-device-crypto` and check `MainApplication.java` to verify the package was added.
 
 2. Run `pod install` in `ios/` directory to install iOS dependencies.
 3. If you want to support FaceID, add a `NSFaceIDUsageDescription` entry in your `Info.plist`.

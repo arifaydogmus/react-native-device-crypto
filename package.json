@@ -1,6 +1,6 @@
 {
   "name": "react-native-device-crypto",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Cryptographic operations inside the secure hardware for React Native",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",

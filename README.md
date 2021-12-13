@@ -79,11 +79,20 @@ When a user enrolls in biometrics, a key pair is generated. The private key is s
 
 Creates an asymmetric key in the secure hardware with given access parameters. Returns Public Key if successfull.
 
-| Access Level    | Description                                                                                        |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| Always          | `unlockedDeviceRequired` is false. This overrides other parameters. (aka unrestricted key)         |
-| Unlocked device | `unlockedDeviceRequired` is true. (aka unrestricted key)                                           |
-| Biometry        | `authenticationRequired` is true. (`unlockedDeviceRequired` is true defacto.) (aka restricted key) |
+```
+interface KeyCreationParams {
+  accessLevel: AccessLevel;
+  invalidateOnNewBiometry?: boolean;
+}
+```
+
+`invalidateOnNewBiometry` : The key has been invalidated when the user removes biometry or enrolls new biometry if this is true. (This is irreversable)
+
+| Access Level            | Description                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| Always                  | The key is always accessible even if the device locked. (aka unrestricted key)                    |
+| Unlocked device         | The key is accessible when the device has been unlocked. (aka unrestricted key)                   |
+| Authentication Required | The key is accessible when the user authenticate their selves with biometry. (aka restricted key) |
 
 Cryptography algorithms
 
@@ -99,11 +108,20 @@ NIST P-256 (aka secp256r1 aka prime256v1) EC (Elliptic Curve) keypair on Android
 
 Creates a symmetric key in the secure hardware with given access parameters. Returns `true` if successfull
 
-| Access Level    | Description                                                                                        |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| Always          | `unlockedDeviceRequired` is false. This overrides other parameters. (aka unrestricted key)         |
-| Unlocked device | `unlockedDeviceRequired` is true. (aka unrestricted key)                                           |
-| Biometry        | `authenticationRequired` is true. (`unlockedDeviceRequired` is true defacto.) (aka restricted key) |
+```
+interface KeyCreationParams {
+  accessLevel: AccessLevel;
+  invalidateOnNewBiometry?: boolean;
+}
+```
+
+`invalidateOnNewBiometry` : The key has been invalidated when the user removes biometry or enrolls new biometry if this is true. (This is irreversable)
+
+| Access Level            | Description                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| Always                  | The key is always accessible even if the device locked. (aka unrestricted key)                    |
+| Unlocked device         | The key is accessible when the device has been unlocked. (aka unrestricted key)                   |
+| Authentication Required | The key is accessible when the user authenticate their selves with biometry. (aka restricted key) |
 
 Cryptography algorithms
 

@@ -8,17 +8,19 @@ import {
   Button,
   Text,
 } from 'react-native';
-import DeviceCrypto, { KeyTypes } from 'react-native-device-crypto';
+import { Dropdown } from 'react-native-element-dropdown';
+import DeviceCrypto, {
+  KeyTypes,
+  AccessLevel,
+} from 'react-native-device-crypto';
 import SwitchBox from './components/SwitchBox';
+import { accessLevelOptions } from './AsymmetricScreen';
 import styles from './styles';
 
 const SymmetricScreen = () => {
   const [error, setError] = React.useState<string>('');
   const [isKeyExists, setIsKeyExists] = React.useState<boolean>(false);
-  const [unlockedDeviceRequired, setUnlockedDeviceRequired] =
-    React.useState<boolean>(false);
-  const [authenticationRequired, setAuthenticationRequired] =
-    React.useState<boolean>(false);
+  const [accessLevel, setAccessLevel] = React.useState<AccessLevel>(0);
   const [invalidateOnNewBiometry, setInvalidateOnNewBiometry] =
     React.useState<boolean>(false);
   const [alias, setAlias] = React.useState<string>('test');
@@ -33,9 +35,8 @@ const SymmetricScreen = () => {
     setError('');
     try {
       const res = await DeviceCrypto.getOrCreateSymmetricKey(alias, {
-        authenticationRequired,
+        accessLevel,
         invalidateOnNewBiometry,
-        unlockedDeviceRequired,
       });
       setIsKeyExists(res);
       return res;
@@ -103,14 +104,23 @@ const SymmetricScreen = () => {
 
         <Text>Key alias</Text>
         <TextInput style={styles.input} onChangeText={setAlias} value={alias} />
-        <SwitchBox
-          onChange={setUnlockedDeviceRequired}
-          text="Unlocked device required"
+
+        <Text>Key accessibility</Text>
+        <Dropdown
+          data={accessLevelOptions}
+          search={false}
+          searchPlaceholder="Search"
+          labelField="label"
+          valueField="value"
+          placeholder="Select item"
+          value={accessLevel}
+          onChange={(item) => {
+            setAccessLevel(item.value);
+            console.log(item);
+          }}
+          style={styles.dropdown}
         />
-        <SwitchBox
-          onChange={setAuthenticationRequired}
-          text="Authentication required"
-        />
+
         <SwitchBox
           onChange={setInvalidateOnNewBiometry}
           text="Invalidate key on new biometry/remove"

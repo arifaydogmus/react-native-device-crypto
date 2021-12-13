@@ -10,6 +10,7 @@ import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import java.lang.annotation.Retention;
 import java.security.Key;
@@ -45,6 +46,15 @@ public class Helpers {
         @interface Types {}
         int ASYMMETRIC = 0;
         int SYMMETRIC = 1;
+    }
+
+    public interface AccessLevel {
+      @Retention(SOURCE)
+      @IntDef({ALWAYS, UNLOCKED_DEVICE, AUTHENTICATION_REQUIRED})
+      @interface Types {}
+      int ALWAYS = 0;
+      int UNLOCKED_DEVICE = 1;
+      int AUTHENTICATION_REQUIRED = 2;
     }
 
     public static String getError(Exception e) {
@@ -96,7 +106,9 @@ public class Helpers {
         return !keyInfo.isUserAuthenticationRequired();
     }
 
-    protected static KeyGenParameterSpec.Builder getBuilder(@NonNull String alias, @NonNull @KeyType.Types int keyType, @NonNull boolean unlockedDeviceRequired, @NonNull boolean authenticationRequired, @NonNull boolean invalidateOnNewBiometry) throws Exception {
+    protected static KeyGenParameterSpec.Builder getBuilder(@NonNull String alias, @NonNull @KeyType.Types int keyType, @NonNull ReadableMap options) throws Exception {
+        int accessLevel = options.hasKey("accessLevel") ? options.getInt("accessLevel") : Helpers.AccessLevel.ALWAYS;
+        boolean invalidateOnNewBiometry = !options.hasKey("invalidateOnNewBiometry") || options.getBoolean("invalidateOnNewBiometry");
         int purposes = KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY | KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT;
         KeyGenParameterSpec.Builder builder = new KeyGenParameterSpec.Builder(alias, purposes);
 
@@ -111,44 +123,42 @@ public class Helpers {
                     .setRandomizedEncryptionRequired(true);
         }
 
-        if (!unlockedDeviceRequired) {
-            return builder;
-        } else {
-            // Available on API 28+
+        // Initial level is AccessLevel.ALWAYS
+        switch (accessLevel) {
+          case AccessLevel.UNLOCKED_DEVICE:
+            builder.setUserAuthenticationRequired(false);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                builder.setUnlockedDeviceRequired(true);
+              builder.setUnlockedDeviceRequired(true);
             }
-        }
-
-        if (authenticationRequired) {
+            break;
+          case AccessLevel.AUTHENTICATION_REQUIRED:
             // Sets whether this key is authorized to be used only if the user has been authenticated.
             builder.setUserAuthenticationRequired(true);
             // Allow pin/pass as a fallback on API 30+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL | KeyProperties.AUTH_BIOMETRIC_STRONG);
+              builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL | KeyProperties.AUTH_BIOMETRIC_STRONG);
             }
             // Invalidate the keys if the user has registered a new biometric
             // credential. The variable "invalidatedByBiometricEnrollment" is true by default.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                builder.setInvalidatedByBiometricEnrollment(invalidateOnNewBiometry);
+              builder.setInvalidatedByBiometricEnrollment(invalidateOnNewBiometry);
             }
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.R) {
-                builder.setIsStrongBoxBacked(true);
+              builder.setIsStrongBoxBacked(true);
             }
-        } else {
-            builder.setUserAuthenticationRequired(false);
+            break;
         }
 
         return builder;
     }
 
     // ASYMMETRIC KEY METHODS
-    public static PublicKey getOrCreateAsymmetricKey(@NonNull String alias, @NonNull boolean unlockedDeviceRequired, @NonNull boolean authenticationRequired, @NonNull boolean invalidateOnNewBiometry) throws Exception {
+    public static PublicKey getOrCreateAsymmetricKey(@NonNull String alias, @NonNull ReadableMap options) throws Exception {
         if (isKeyExists(alias, KeyType.ASYMMETRIC)) {
             return getPublicKeyRef(alias);
         }
 
-        KeyGenParameterSpec.Builder builder = getBuilder(alias, KeyType.ASYMMETRIC, unlockedDeviceRequired, authenticationRequired, invalidateOnNewBiometry);
+        KeyGenParameterSpec.Builder builder = getBuilder(alias, KeyType.ASYMMETRIC, options);
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, KEY_STORE);
         keyPairGenerator.initialize(builder.build());
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
@@ -197,12 +207,12 @@ public class Helpers {
 
     // SYMMETRIC KEY METHODS
     // ______________________________________________
-    public static SecretKey getOrCreateSymmetricKey(@NonNull String alias, @NonNull boolean unlockedDeviceRequired, @NonNull boolean authenticationRequired, @NonNull boolean invalidateOnNewBiometry) throws Exception {
+    public static SecretKey getOrCreateSymmetricKey(@NonNull String alias, @NonNull ReadableMap options) throws Exception {
         if (isKeyExists(alias, KeyType.SYMMETRIC)) {
             return getSymmetricKeyRef(alias);
         }
 
-        KeyGenParameterSpec.Builder builder = getBuilder(alias, KeyType.SYMMETRIC, unlockedDeviceRequired, authenticationRequired, invalidateOnNewBiometry);
+        KeyGenParameterSpec.Builder builder = getBuilder(alias, KeyType.SYMMETRIC, options);
         KeyGenerator keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEY_STORE);
         keyGen.init(builder.build());
         return keyGen.generateKey();

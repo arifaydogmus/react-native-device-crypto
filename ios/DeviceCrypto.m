@@ -15,14 +15,20 @@ RCT_EXPORT_MODULE()
 #pragma mark - DeviceCrypto
 
 #define kKeyType @"keyType"
-#define kUnlockedDeviceRequired @"unlockedDeviceRequired"
-#define kAuthenticationRequired @"authenticationRequired"
+#define kAccessLevel @"accessLevel"
 #define kInvalidateOnNewBiometry @"invalidateOnNewBiometry"
 #define kAuthenticatePrompt @"biometryDescription"
+#define kAuthenticationRequired @"Authentication is required"
 
 typedef NS_ENUM(NSUInteger, KeyType) {
     ASYMMETRIC = 0,
     SYMMETRIC = 1,
+};
+
+typedef NS_ENUM(NSUInteger, AccessLevel) {
+  ALWAYS = 0,
+  UNLOCKED_DEVICE = 1,
+  AUTHENTICATION_REQUIRED = 2,
 };
 
 - (SecKeyRef) getPublicKeyRef:(nonnull NSData*) alias
@@ -186,7 +192,19 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   return true;
 }
 
-- (NSString*) getOrCreateKey:(nonnull NSData*) alias withUnlockedDeviceRequired:(BOOL) unlockedDeviceRequired withAuthenticationRequired: (BOOL) authenticationRequired withInvalidateOnNewBiometry: (BOOL) invalidateOnNewBiometry
+- (BOOL) hasBiometry {
+  NSError *aerr = nil;
+  LAContext *context = [[LAContext alloc] init];
+  return [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&aerr];
+}
+
+- (BOOL) hasPassCode {
+  NSError *aerr = nil;
+  LAContext *context = [[LAContext alloc] init];
+  return [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&aerr];
+}
+
+- (NSString*) getOrCreateKey:(nonnull NSData*) alias withOptions:(nonnull NSDictionary *)options
 {
   SecKeyRef privateKeyRef = [self getPrivateKeyRef:alias withMessage:kAuthenticationRequired];
   if (privateKeyRef != nil) {
@@ -194,31 +212,36 @@ typedef NS_ENUM(NSUInteger, KeyType) {
   }
 
   CFErrorRef error = nil;
-  CFStringRef accessLevel = kSecAttrAccessibleAfterFirstUnlock;
+  CFStringRef keyAccessLevel = kSecAttrAccessibleAfterFirstUnlock;
   SecAccessControlCreateFlags acFlag = kSecAccessControlPrivateKeyUsage;
+  int accessLevel = [options[kAccessLevel] intValue];
+  BOOL invalidateOnNewBiometry = options[kInvalidateOnNewBiometry] && [options[kInvalidateOnNewBiometry] boolValue];
   
-  if (unlockedDeviceRequired) {
-    accessLevel = kSecAttrAccessibleWhenUnlockedThisDeviceOnly;
-  }
-  
-  if (authenticationRequired) {
-    accessLevel = kSecAttrAccessibleWhenUnlockedThisDeviceOnly;
-    if (invalidateOnNewBiometry) {
+  switch(accessLevel) {
+    case UNLOCKED_DEVICE:
+      if (![self hasPassCode]) {
+        [NSException raise:@"E1771" format:@"The device cannot meet requirements. No passcode has been set."];
+      }
+      keyAccessLevel = kSecAttrAccessibleWhenUnlockedThisDeviceOnly;
+      acFlag = kSecAccessControlPrivateKeyUsage;
+      break;
+    case AUTHENTICATION_REQUIRED:
+      if (![self hasBiometry]) {
+        [NSException raise:@"E1771" format:@"The device cannot meet requirements. No biometry has been enrolled."];
+      }
+      keyAccessLevel = kSecAttrAccessibleWhenUnlockedThisDeviceOnly;
       if (@available(iOS 11.3, *)) {
-        acFlag = kSecAccessControlBiometryCurrentSet | kSecAccessControlPrivateKeyUsage;
+          acFlag = invalidateOnNewBiometry ? kSecAccessControlBiometryCurrentSet | kSecAccessControlPrivateKeyUsage : kSecAccessControlBiometryAny | kSecAccessControlPrivateKeyUsage;
       } else {
         acFlag = kSecAccessControlPrivateKeyUsage;
       }
-    } else {
-      if (@available(iOS 11.3, *)) {
-        acFlag = kSecAccessControlBiometryAny | kSecAccessControlPrivateKeyUsage;
-      } else {
-        acFlag = kSecAccessControlPrivateKeyUsage;
-      }
-    }
+      break;
+    default: // ALWAYS
+      keyAccessLevel = kSecAttrAccessibleAfterFirstUnlock;
+      acFlag = kSecAccessControlPrivateKeyUsage;
   }
   
-  SecAccessControlRef acRef = SecAccessControlCreateWithFlags(kCFAllocatorDefault, accessLevel, acFlag, &error);
+  SecAccessControlRef acRef = SecAccessControlCreateWithFlags(kCFAllocatorDefault, keyAccessLevel, acFlag, &error);
   
   if (!acRef) {
     [NSException raise:@"E1711" format:@"Could not create access control."];
@@ -257,11 +280,8 @@ RCT_EXPORT_METHOD(createKey:(nonnull NSData *)alias withOptions:(nonnull NSDicti
 {
   @try {
     NSString *keyType = options[kKeyType];
-    BOOL unlockedDeviceRequired = [options[kUnlockedDeviceRequired] boolValue];
-    BOOL authenticationRequired = [options[kAuthenticationRequired] boolValue];
-    BOOL invalidateOnNewBiometry = [options[kInvalidateOnNewBiometry] boolValue];
-
-    NSString* publicKey = [self getOrCreateKey:alias withUnlockedDeviceRequired:unlockedDeviceRequired withAuthenticationRequired:authenticationRequired withInvalidateOnNewBiometry:invalidateOnNewBiometry];
+    NSString* publicKey = [self getOrCreateKey:alias withOptions:options];
+    
     if (keyType.intValue == ASYMMETRIC) {
       resolve(publicKey);
     } else {
@@ -395,15 +415,7 @@ RCT_EXPORT_METHOD(isKeyExists:(nonnull NSData *)alias withKeyType:(nonnull NSNum
 RCT_EXPORT_METHOD(isBiometryEnrolled:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
   @try {
-    NSError *aerr = nil;
-    LAContext *context = [[LAContext alloc] init];
-    BOOL canBeProtected = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&aerr];
-    
-    if (aerr) {
-      [NSException raise:@"Unexpected OSStatus" format:@"%@", aerr];
-    }
-    
-    return resolve(canBeProtected ? @(YES) : @(NO));
+    resolve([self hasBiometry] ? @(YES) : @(NO));
   } @catch(NSException *err) {
     reject(err.name, err.reason, nil);
   }
@@ -411,24 +423,20 @@ RCT_EXPORT_METHOD(isBiometryEnrolled:(RCTPromiseResolveBlock)resolve rejecter:(R
 
 RCT_EXPORT_METHOD(deviceSecurityLevel:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-  NSError *aerr = nil;
-  LAContext *context = [[LAContext alloc] init];
-  BOOL canBeProtected = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&aerr];
-  
-  // has enrolled biometry
-  if (!aerr && canBeProtected) {
-    resolve(@"BIOMETRY");
-    return;
+  @try {
+    if ([self hasBiometry]) {
+      resolve(@"BIOMETRY");
+      return;
+    }
+    if ([self hasPassCode]) {
+      resolve(@"PIN_OR_PATTERN");
+      return;
+    }
+    
+    resolve(@"NOT_PROTECTED");
+  } @catch(NSException *err) {
+    reject(err.name, err.reason, nil);
   }
-  
-  canBeProtected = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&aerr];
-  // has passcode
-  if (!aerr && canBeProtected) {
-    resolve(@"PIN_OR_PATTERN");
-    return;
-  }
-  
-  resolve(@"NOT_PROTECTED");
 }
 
 RCT_EXPORT_METHOD(getBiometryType:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)

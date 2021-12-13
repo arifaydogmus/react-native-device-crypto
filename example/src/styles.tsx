@@ -70,6 +70,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  dropdown: {
+    backgroundColor: '#F8F8F8',
+    borderColor: '#A8A8A8',
+    borderWidth: 0.5,
+    marginVertical: 8,
+    paddingHorizontal: 8,
+  },
 });
 
 export default styles;

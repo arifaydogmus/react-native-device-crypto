@@ -38,25 +38,22 @@ public class DeviceCryptoModule extends ReactContextBaseJavaModule {
   // ______________________________________________
   @ReactMethod
   public void createKey(@NonNull String alias, @NonNull ReadableMap options, @NonNull final Promise promise) {
-    boolean authenticationRequired  = !options.hasKey("authenticationRequired") || options.getBoolean("authenticationRequired");
-    boolean unlockedDeviceRequired  = !options.hasKey("unlockedDeviceRequired") || options.getBoolean("unlockedDeviceRequired");
-    boolean invalidateOnNewBiometry = !options.hasKey("invalidateOnNewBiometry") || options.getBoolean("invalidateOnNewBiometry");
     int keyType = options.hasKey("keyType") ? options.getInt ("keyType") : Helpers.KeyType.ASYMMETRIC;
     ReactApplicationContext context = getReactApplicationContext();
 
     try {
-      if (!Device.isCompatible(context, unlockedDeviceRequired, authenticationRequired, invalidateOnNewBiometry)) {
+      if (!Device.isCompatible(context, options)) {
         throw new Exception("The device cannot meet requirements. (Eg: not pin/pass protected or no biometry has been enrolled.");
       }
 
       if (keyType == Helpers.KeyType.ASYMMETRIC) {
-        PublicKey publicKey = Helpers.getOrCreateAsymmetricKey(alias, unlockedDeviceRequired,authenticationRequired, invalidateOnNewBiometry);
+        PublicKey publicKey = Helpers.getOrCreateAsymmetricKey(alias, options);
         if (publicKey == null) {
           throw new Exception("Public key is null.");
         }
         promise.resolve(Helpers.getPublicKeyPEMFormatted(alias));
       } else {
-        SecretKey secretKey = Helpers.getOrCreateSymmetricKey(alias, unlockedDeviceRequired, authenticationRequired, invalidateOnNewBiometry);
+        SecretKey secretKey = Helpers.getOrCreateSymmetricKey(alias, options);
         if (secretKey == null) {
           throw new Exception("Secret key is null.");
         }

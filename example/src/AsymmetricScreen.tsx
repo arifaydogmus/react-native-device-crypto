@@ -8,9 +8,19 @@ import {
   Button,
   TextInput,
 } from 'react-native';
-import DeviceCrypto, { KeyTypes } from 'react-native-device-crypto';
+import { Dropdown } from 'react-native-element-dropdown';
+import DeviceCrypto, {
+  AccessLevel,
+  KeyTypes,
+} from 'react-native-device-crypto';
 import SwitchBox from './components/SwitchBox';
 import styles from './styles';
+
+export const accessLevelOptions = [
+  { label: 'Always', value: 0 },
+  { label: 'Unlocked device', value: 1 },
+  { label: 'Authentication required', value: 2 },
+];
 
 const AsymmetricScreen = () => {
   const [error, setError] = React.useState<string>('');
@@ -19,10 +29,7 @@ const AsymmetricScreen = () => {
     React.useState<string>('text to be signed');
   const [publicKey, setPublicKey] = React.useState<string>('');
   const [alias, setAlias] = React.useState<string>('test');
-  const [unlockedDeviceRequired, setUnlockedDeviceRequired] =
-    React.useState<boolean>(false);
-  const [authenticationRequired, setAuthenticationRequired] =
-    React.useState<boolean>(false);
+  const [accessLevel, setAccessLevel] = React.useState<AccessLevel>(0);
   const [invalidateOnNewBiometry, setInvalidateOnNewBiometry] =
     React.useState<boolean>(false);
   const [isKeyExists, setIsKeyExists] = React.useState<boolean>(false);
@@ -31,8 +38,7 @@ const AsymmetricScreen = () => {
   const createKey = async () => {
     try {
       const res = await DeviceCrypto.getOrCreateAsymmetricKey(alias, {
-        unlockedDeviceRequired,
-        authenticationRequired,
+        accessLevel,
         invalidateOnNewBiometry,
       });
       setPublicKey(res);
@@ -94,14 +100,23 @@ const AsymmetricScreen = () => {
 
         <Text>Key alias</Text>
         <TextInput style={styles.input} onChangeText={setAlias} value={alias} />
-        <SwitchBox
-          onChange={setUnlockedDeviceRequired}
-          text="Unlocked device required"
+
+        <Text>Key accessibility</Text>
+        <Dropdown
+          data={accessLevelOptions}
+          search={false}
+          searchPlaceholder="Search"
+          labelField="label"
+          valueField="value"
+          placeholder="Select item"
+          value={accessLevel}
+          onChange={(item) => {
+            setAccessLevel(item.value);
+            console.log(item);
+          }}
+          style={styles.dropdown}
         />
-        <SwitchBox
-          onChange={setAuthenticationRequired}
-          text="Authentication required"
-        />
+
         <SwitchBox
           onChange={setInvalidateOnNewBiometry}
           text="Invalidate key on new biometry/remove"

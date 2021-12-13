@@ -10,6 +10,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static androidx.biometric.BiometricManager.Authenticators.*;
 import static androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReadableMap;
 
 public class Device {
     public static boolean hasEnrolledBiometry(@NonNull final ReactApplicationContext context) {
@@ -46,18 +47,15 @@ public class Device {
         return context.checkSelfPermission(Manifest.permission.USE_BIOMETRIC) == PERMISSION_GRANTED;
     }
 
-    public static boolean isCompatible(@NonNull final ReactApplicationContext context, @NonNull boolean unlockedDeviceRequired, @NonNull boolean authenticationRequired, @NonNull boolean invalidateOnNewBiometry) {
-        // Key is always accessible on any security level
-        if (!unlockedDeviceRequired) {
-            return true;
-        }
-
-        // Biometry should be enrolled
-        if (invalidateOnNewBiometry) {
-            return hasEnrolledBiometry(context);
-        }
-
-        // Biometry should be enrolled if authentication is required. Otherwise pin/pass should be set. (Unlocked device required)
-        return authenticationRequired ? hasEnrolledBiometry(context) : hasPinOrPassword(context);
+    public static boolean isCompatible(@NonNull final ReactApplicationContext context, @NonNull ReadableMap options) {
+      int accessLevel = options.hasKey("accessLevel") ? options.getInt("accessLevel") : Helpers.AccessLevel.ALWAYS;
+      switch (accessLevel) {
+        case Helpers.AccessLevel.UNLOCKED_DEVICE:
+          return hasPinOrPassword(context);
+        case Helpers.AccessLevel.AUTHENTICATION_REQUIRED:
+          return hasEnrolledBiometry(context);
+        default:
+          return true;
+      }
     }
 }

@@ -8,10 +8,14 @@ export interface BiometryParams {
   biometryDescription: string;
 }
 
+export enum AccessLevel {
+  ALWAYS = 0,
+  UNLOCKED_DEVICE = 1,
+  AUTHENTICATION_REQUIRED = 2,
+}
 export interface KeyCreationParams {
-  authenticationRequired: boolean;
-  unlockedDeviceRequired: boolean;
-  invalidateOnNewBiometry: boolean;
+  accessLevel: AccessLevel;
+  invalidateOnNewBiometry?: boolean;
 }
 
 export enum KeyTypes {

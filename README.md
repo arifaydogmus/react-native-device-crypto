@@ -129,7 +129,7 @@ AES256
 
 **Note for IOS :**
 We don’t explicitly create the symmetric key. Instead, we call native `SecKeyCreateEncryptedData` to create a symmetric key for you. This function creates the symmetric key, uses it to encrypt your data, and then encrypts the key itself with the public key (We create in background to provide it later on encrypt/decrypt operations). It then packages all of this data together and returns it to you. You then transmit it to a receiver, who uses the corresponding private key in a call to native `SecKeyCreateDecryptedData` to reverse the operation.
-That is why `encrypt` method returns `NotRequired` on IOS.
+That is why `encrypt` method returns IV as `NotRequired` on IOS.
 
 ### isKeyExists
 

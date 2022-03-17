@@ -201,7 +201,7 @@ typedef NS_ENUM(NSUInteger, AccessLevel) {
 - (BOOL) hasPassCode {
   NSError *aerr = nil;
   LAContext *context = [[LAContext alloc] init];
-  return [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&aerr];
+  return [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&aerr];
 }
 
 - (NSString*) getOrCreateKey:(nonnull NSData*) alias withOptions:(nonnull NSDictionary *)options
